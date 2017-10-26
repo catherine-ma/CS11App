@@ -7,19 +7,141 @@
 //
 
 import UIKit
+import Foundation
 
-class ViewController: UIViewController {
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
+struct GeoCache {
+    var title: String
+    var details: String
+    var creator: String
+    var reward: String
+    
+    init?(fromDictionary dict: [String: String]) {
+        guard let initTitle = dict["title"], initTitle != "" else {
+            return nil
+        }
+        
+        guard let initDetails = dict["details"], initDetails != "" else {
+            return nil
+        }
+        
+        guard let initCreator = dict["creator"], initCreator != "" else {
+            return nil
+        }
+        
+        guard let initReward = dict["reward"], initReward != "" else {
+            return nil
+        }
+        
+        self.title = initTitle
+        self.details = initDetails
+        self.creator = initCreator
+        self.reward = initReward
     }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+    
+    var dictionary: [String: String] {
+        get {
+            return ["title": title, "details": details, "creator": creator, "reward": reward]
+        }
+        set {
+            title = newValue["title"]!
+            details = newValue["details"]!
+            creator = newValue["creator"]!
+            reward = newValue["reward"]!
+        }
     }
-
-
+    
+    var description: String {
+        get {
+            return "\(title): located at \(details) with reward \(reward). Created by \(creator)."
+        }
+    }
 }
 
+func loadCachesFromDefaults() -> [GeoCache] {
+    let defaults = UserDefaults.standard
+    var geoArr: [GeoCache] = []
+    
+    if let geoCacheArr: [[String: String]] = defaults.array(forKey: "arr") as? [[String: String]] {
+        for dict in geoCacheArr {
+            let geoDict: [String: String] = dict
+            
+            if let geoCache: GeoCache = GeoCache(fromDictionary: geoDict) {
+                geoArr.append(geoCache)
+            }
+        }
+    }
+
+    return geoArr
+}
+
+func saveCachesToDefaults(_ caches: [GeoCache]) {
+    let defaults = UserDefaults.standard
+    var geoArr: [[String: String]] = []
+    
+    for geo in caches {
+        let geoDict: [String: String] = geo.dictionary
+        geoArr.append(geoDict)
+    }
+    
+    defaults.setValue(geoArr, forKey: "arr")
+    defaults.synchronize()
+}
+
+class ViewController: UIViewController {
+    @IBOutlet weak var titleField: UITextField!
+    @IBOutlet weak var detailField: UITextField!
+    @IBOutlet weak var creatorField: UITextField!
+    @IBOutlet weak var rewardField: UITextField!
+    @IBOutlet weak var cacheLabel: UITextView!
+    
+    var geoCaches: [GeoCache] = []
+    var currIdx: Int = -1
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        geoCaches = loadCachesFromDefaults()
+    }
+    
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+    }
+    
+    @IBAction func addGeoCache(_ sender: Any) {
+        guard let title = titleField.text, title != "" else {
+            cacheLabel.text = "No title"
+            return
+        }
+        
+        guard let detail = detailField.text, detail != "" else {
+            cacheLabel.text = "No details"
+            return
+        }
+        
+        guard let creator = creatorField.text, creator != "" else {
+            cacheLabel.text = "No creator"
+            return
+        }
+        
+        guard let reward = rewardField.text, reward != "" else {
+            cacheLabel.text = "No reward"
+            return
+        }
+        
+        let newGeoCache: GeoCache? = GeoCache(fromDictionary: ["title" : title, "details" : detail, "creator" : creator, "reward" : reward])
+        geoCaches.append(newGeoCache!)
+        saveCachesToDefaults(geoCaches)
+    }
+    
+    @IBAction func nextCache(_ sender: Any) {
+        if geoCaches.count != 0 {
+            if currIdx == geoCaches.count - 1 {
+                currIdx = 0
+                cacheLabel.text = geoCaches[currIdx].description
+            }
+            else {
+                currIdx += 1
+                cacheLabel.text = geoCaches[currIdx].description
+            }
+        }
+    }
+}
