@@ -9,43 +9,50 @@
 import Foundation
 
 struct GeoCache {
+    var id: Int
     var title: String
     var details: String
     var creator: String
     var reward: String
     
-    init?(fromDictionary dict: [String: String]) {
-        guard let initTitle = dict["title"], initTitle != "" else {
+    init?(fromDictionary dict: [String: Any]) {
+        guard let initID = dict["id"] as? Int else {
             return nil
         }
         
-        guard let initDetails = dict["details"], initDetails != "" else {
+        guard let initTitle = dict["title"] as? String, initTitle != "" else {
             return nil
         }
         
-        guard let initCreator = dict["creator"], initCreator != "" else {
+        guard let initDetails = dict["details"] as? String, initDetails != "" else {
             return nil
         }
         
-        guard let initReward = dict["reward"], initReward != "" else {
+        guard let initCreator = dict["creator"] as? String, initCreator != "" else {
             return nil
         }
         
+        guard let initReward = dict["reward"] as? String, initReward != "" else {
+            return nil
+        }
+        
+        self.id = initID
         self.title = initTitle
         self.details = initDetails
         self.creator = initCreator
         self.reward = initReward
     }
     
-    var dictionary: [String: String] {
+    var dictionary: [String: Any] {
         get {
-            return ["title": title, "details": details, "creator": creator, "reward": reward]
+            return ["id": id, "title": title, "details": details, "creator": creator, "reward": reward]
         }
         set {
-            title = newValue["title"]!
-            details = newValue["details"]!
-            creator = newValue["creator"]!
-            reward = newValue["reward"]!
+            id = newValue["id"] as! Int
+            title = newValue["title"] as! String
+            details = newValue["details"] as! String
+            creator = newValue["creator"] as! String
+            reward = newValue["reward"] as! String
         }
     }
     
@@ -56,32 +63,53 @@ struct GeoCache {
     }
 }
 
-func loadCachesFromDefaults() -> [GeoCache] {
-    let defaults = UserDefaults.standard
-    var geoArr: [GeoCache] = []
-    
-    if let geoCacheArr: [[String: String]] = defaults.array(forKey: "arr") as? [[String: String]] {
-        for dict in geoCacheArr {
-            let geoDict: [String: String] = dict
-            
-            if let geoCache: GeoCache = GeoCache(fromDictionary: geoDict) {
-                geoArr.append(geoCache)
-            }
-        }
-    }
-    
-    return geoArr
+func randomCacheId() -> Int {
+    return Int(arc4random())
 }
 
-func saveCachesToDefaults(_ caches: [GeoCache]) {
-    let defaults = UserDefaults.standard
-    var geoArr: [[String: String]] = []
+func sendCacheToServer(_ cache: GeoCache) {
+    let dest: URL? = URL(string: "http://localhost:5000/serverURL/createCache")
+    var request = URLRequest(url: dest!)
+    request.httpMethod = "POST"
+    let data = try? JSONSerialization.data(withJSONObject: cache.dictionary)
+    request.httpBody = data
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
     
-    for geo in caches {
-        let geoDict: [String: String] = geo.dictionary
-        geoArr.append(geoDict)
+    let task = URLSession.shared.dataTask(with: request) {
+        data, response, error in
+        if let error = error {
+            print(error.localizedDescription)
+            return
+        }
     }
-    
-    defaults.setValue(geoArr, forKey: "arr")
-    defaults.synchronize()
+    task.resume()
+}
+
+func loadCachesFromServer(onComplete: @escaping ([GeoCache]) -> ()) {
+    let dest: URL? = URL(string: "http://localhost:5000/getCaches")
+    var request = URLRequest(url: dest!)
+    request.httpMethod = "GET"
+    let task = URLSession.shared.dataTask(with: request) {
+        data, response, error in
+        if let error = error {
+            print(error.localizedDescription)
+            return
+        }
+        
+        guard let data = data else {
+            return
+        }
+        
+        if let json = try? JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [[String:Any]] {
+            var geoCacheArr: [GeoCache] = []
+            
+            for dict in json! {
+                let geoCache: GeoCache = GeoCache(fromDictionary: dict)!
+                geoCacheArr.append(geoCache)
+            }
+            
+            onComplete(geoCacheArr)
+        }
+    }
+    task.resume()
 }

@@ -41,7 +41,7 @@ class NewCacheViewController: UIViewController {
             return
         }
 
-        cache = GeoCache(fromDictionary: ["title" : title, "details" : detail, "creator" : creator, "reward" : reward])
+        cache = GeoCache(fromDictionary: ["id": randomCacheId(), "title" : title, "details" : detail, "creator" : creator, "reward" : reward])
     }
 
     @IBAction func cancel(_ sender: UIBarButtonItem) {

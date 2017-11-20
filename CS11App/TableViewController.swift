@@ -13,7 +13,13 @@ class TableViewController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        geoCaches = loadCachesFromDefaults()
+        loadCachesFromServer() {
+            geoCacheArr in
+            self.geoCaches = geoCacheArr
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+            }
+        }
     }
 
     override func didReceiveMemoryWarning() {
@@ -40,7 +46,7 @@ class TableViewController: UITableViewController {
                 let indexPath: IndexPath = IndexPath(row: geoCaches.count, section: 0)
                 geoCaches.append(cache)
                 tableView.insertRows(at: [indexPath], with: .automatic)
-                saveCachesToDefaults(geoCaches)
+                sendCacheToServer(cache)
             }
         }
     }
