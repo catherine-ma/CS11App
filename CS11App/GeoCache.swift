@@ -68,7 +68,7 @@ func randomCacheId() -> Int {
 }
 
 func sendCacheToServer(_ cache: GeoCache) {
-    let dest: URL? = URL(string: "http://localhost:5000/serverURL/createCache")
+    let dest: URL? = URL(string: "http://localhost:5000/createCache")
     var request = URLRequest(url: dest!)
     request.httpMethod = "POST"
     let data = try? JSONSerialization.data(withJSONObject: cache.dictionary)
