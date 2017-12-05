@@ -10,7 +10,9 @@ import UIKit
 
 class DetailViewController: UIViewController {
     @IBOutlet weak var detailField: UITextView!
+    @IBOutlet weak var imageView: UIImageView!
     
+    var image: UIImage?
     var descript: String?
     
     override func viewDidLoad() {
@@ -18,6 +20,7 @@ class DetailViewController: UIViewController {
         if let detail = descript {
             detailField.text = detail
         }
+        imageView.image = image
     }
 
     override func didReceiveMemoryWarning() {

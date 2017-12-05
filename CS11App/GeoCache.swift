@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import UIKit
 
 struct GeoCache {
     var id: Int
@@ -14,6 +15,7 @@ struct GeoCache {
     var details: String
     var creator: String
     var reward: String
+    var image: UIImage?
     
     init?(fromDictionary dict: [String: Any]) {
         guard let initID = dict["id"] as? Int else {
@@ -41,6 +43,7 @@ struct GeoCache {
         self.details = initDetails
         self.creator = initCreator
         self.reward = initReward
+        self.image = dict["image"] as! UIImage?
     }
     
     var dictionary: [String: Any] {
@@ -81,6 +84,35 @@ func sendCacheToServer(_ cache: GeoCache) {
             print(error.localizedDescription)
             return
         }
+        
+        guard let data = data else {
+            return
+        }
+        
+        if let json = try? JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [String] {
+            if json![0] == "Success" {
+                if let image = cache.image {
+                    sendImage(id: cache.id, image: image)
+                }
+            }
+        }
+    }
+    task.resume()
+}
+
+func sendImage(id: Int, image: UIImage) {
+    let dest: URL? = URL(string: "http://localhost:5000/addPicture?id=\(id)")
+    var request = URLRequest(url:dest!)
+    request.httpMethod = "POST"
+    request.httpBody = UIImageJPEGRepresentation(image, 0.25)
+    // request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    
+    let task = URLSession.shared.dataTask(with: request) {
+        data, response, error in
+        if let error = error {
+            print(error.localizedDescription)
+            return
+        }
     }
     task.resume()
 }
@@ -89,6 +121,7 @@ func loadCachesFromServer(onComplete: @escaping ([GeoCache]) -> ()) {
     let dest: URL? = URL(string: "http://localhost:5000/getCaches")
     var request = URLRequest(url: dest!)
     request.httpMethod = "GET"
+    
     let task = URLSession.shared.dataTask(with: request) {
         data, response, error in
         if let error = error {
@@ -109,6 +142,29 @@ func loadCachesFromServer(onComplete: @escaping ([GeoCache]) -> ()) {
             }
             
             onComplete(geoCacheArr)
+        }
+    }
+    task.resume()
+}
+
+func pullImageFromServer(id: Int, number: Int, onComplete: @escaping (UIImage) -> ()) {
+    let dest: URL? = URL(string: "http://localhost:5000/getImage?id=\(id)&img=\(number)")
+    var request = URLRequest(url: dest!)
+    request.httpMethod = "GET"
+    
+    let task = URLSession.shared.dataTask(with: request) {
+        data, response, error in
+        if let error = error {
+            print(error.localizedDescription)
+            return
+        }
+        
+        guard let data = data else {
+            return
+        }
+        
+        if let image = UIImage(data: data) {
+            onComplete(image)
         }
     }
     task.resume()

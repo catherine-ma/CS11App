@@ -20,6 +20,13 @@ class TableViewController: UITableViewController {
                 self.tableView.reloadData()
             }
         }
+        
+        for i in 0..<geoCaches.count {
+            pullImageFromServer(id: geoCaches[i].id, number: 0) {
+                image in
+                self.geoCaches[i].image = image
+            }
+        }
     }
 
     override func didReceiveMemoryWarning() {
@@ -59,6 +66,7 @@ class TableViewController: UITableViewController {
         if segue.identifier == "showDetail" {
             if let row = (sender as? IndexPath)?.row {
                 if let dest = segue.destination as? DetailViewController {
+                    dest.image = geoCaches[row].image
                     dest.descript = geoCaches[row].description
                 }
             }
